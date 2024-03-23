@@ -1,0 +1,449 @@
+---
+title: "Infant ERP Moulson Analysis"
+author: "Kira Ashton"
+date: "9/22/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(nlme)
+library(ggplot2)
+library(gplots)
+
+```
+
+
+```{r load data}
+
+erp_data <- read.csv("data_table.csv")
+
+names(erp_data)
+
+```
+
+
+```{r create condition variable}
+
+erp_data$Condition <- ifelse((erp_data$Gender=="Female" & erp_data$Race=="Own"), "Female Own", 
+                             ifelse( (erp_data$Gender=="Female" & erp_data$Race=="Other"),  "Female Other",  
+                                    ifelse((erp_data$Gender=="Male" & erp_data$Race=="Own"), "Male Own", "Male Other")))
+
+```
+
+
+```{r}
+
+# exclude babies who saw non-normed stim set
+
+erp_data <- subset(erp_data, own_stim!='black' & other_stim!='black')
+
+```
+
+
+
+
+```{r}
+
+cutd <- subset(erp_data,(erp_data$N290_cor > -200))
+
+```
+
+
+
+# FUll models
+
+
+```{r}
+
+p1.lme <- lme(P1_Amp ~ as.factor(Gender) * as.factor(ROI) * Age +  as.factor(ROI) * Age* as.factor(Race) + as.factor(Gender) * Age* as.factor(Race) + as.factor(Gender) * as.factor(ROI) *as.factor(Race), random= ~ 1 | SubjID, data = erp_data )
+
+anova(p1.lme)
+
+n290.lme <- lme(N290_cor ~ as.factor(Gender) * as.factor(ROI) * Age +  as.factor(ROI) * Age* as.factor(Race) + as.factor(Gender) * Age* as.factor(Race) + as.factor(Gender) * as.factor(ROI) *as.factor(Race), random= ~ 1 | SubjID,data = cutd )
+
+anova(n290.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(Gender) * as.factor(ROI) * Age +  as.factor(ROI) * Age* as.factor(Race) + as.factor(Gender) * Age* as.factor(Race) + as.factor(Gender) * as.factor(ROI) *as.factor(Race), random= ~ 1 | SubjID, data = erp_data )
+
+anova(p400.lme)
+
+
+
+```
+
+
+
+```{r}
+
+n290.lme <- lme(N290_cor ~  as.factor(ROI) , random= ~ 1 | SubjID,data = subset(cutd, Age==3) )
+
+anova(n290.lme)
+
+n290.lme <- lme(N290_cor ~  as.factor(ROI) , random= ~ 1 | SubjID,data = subset(cutd, Age==6) )
+
+anova(n290.lme)
+
+n290.lme <- lme(N290_cor ~  as.factor(ROI) , random= ~ 1 | SubjID,data = subset(cutd, Age==9) )
+
+anova(n290.lme)
+
+
+```
+
+```{r}
+unique(cutd$ROI)
+```
+
+```{r}
+
+p1.lme <- lme(P1_Amp ~ as.factor(Age) , random= ~ 1 | SubjID,data = subset(erp_data, (Age==6 | Age==3)) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(Age) , random= ~ 1 | SubjID,data = subset(erp_data, (Age==9 | Age==3)) )
+
+anova(p1.lme)
+
+```
+
+
+```{r}
+
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OIL')) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OIZ')) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OIR')) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OTR')) )
+
+anova(p1.lme)
+
+
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIL' | ROI=='OIZ')) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIL' | ROI=='OIR')) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIL' | ROI=='OTR')) )
+
+anova(p1.lme)
+
+
+
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIZ' | ROI=='OIR')) )
+
+anova(p1.lme)
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIZ' | ROI=='OTR')) )
+
+anova(p1.lme)
+
+
+
+
+p1.lme <- lme(P1_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIR' | ROI=='OTR')) )
+
+anova(p1.lme)
+
+
+
+```
+
+
+
+
+
+```{r}
+
+d <- subset(cutd, Age==6)
+
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OTL' | ROI=='OIL')) )
+
+anova(N290.lme)
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OTL' | ROI=='OIZ')) )
+
+anova(N290.lme)
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OTL' | ROI=='OIR')) )
+
+anova(N290.lme)
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OTL' | ROI=='OTR')) )
+
+anova(N290.lme)
+
+
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OIL' | ROI=='OIZ')) )
+
+anova(N290.lme)
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OIL' | ROI=='OIR')) )
+
+anova(N290.lme)
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OIL' | ROI=='OTR')) )
+
+anova(N290.lme)
+
+
+
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OIZ' | ROI=='OIR')) )
+
+anova(N290.lme)
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OIZ' | ROI=='OTR')) )
+
+anova(N290.lme)
+
+
+
+
+N290.lme <- lme(N290_cor ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(d, (ROI=='OIR' | ROI=='OTR')) )
+
+anova(N290.lme)
+
+
+
+```
+
+
+```{r}
+
+p400.lme <- lme(P400_Amp ~ as.factor(Age) , random= ~ 1 | SubjID,data = subset(erp_data, (Age==6 | Age==3)) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(Age) , random= ~ 1 | SubjID,data = subset(erp_data, (Age==9 | Age==3)) )
+
+anova(p400.lme)
+
+```
+
+
+```{r}
+
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OIL')) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OIZ')) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OIR')) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OTL' | ROI=='OTR')) )
+
+anova(p400.lme)
+
+
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIL' | ROI=='OIZ')) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIL' | ROI=='OIR')) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIL' | ROI=='OTR')) )
+
+anova(p400.lme)
+
+
+
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIZ' | ROI=='OIR')) )
+
+anova(p400.lme)
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIZ' | ROI=='OTR')) )
+
+anova(p400.lme)
+
+
+
+
+p400.lme <- lme(P400_Amp ~ as.factor(ROI) , random= ~ 1 | SubjID,data = subset(erp_data, (ROI=='OIR' | ROI=='OTR')) )
+
+anova(p400.lme)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+lme <- lme(P400_Amp ~ as.factor(Gender) , random= ~ 1 | SubjID,data = subset(erp_data, (Race=="Other")))
+
+
+anova(lme)
+```
+
+
+
+
+
+
+
+```{r}
+
+plotmeans(P1_Amp~Age,data=erp_data,xlab = "Age",ylab = "P1 Amp",mean.labels=TRUE, connect = FALSE, n.label=FALSE) 
+plotmeans(P1_Amp~ROI,data=erp_data,xlab = "ROI",ylab = "P1 Amp",mean.labels=TRUE, connect = FALSE, n.label=FALSE) 
+
+```
+
+
+
+```{r}
+
+plotmeans(N290_cor~Age,data=cutd,xlab = "Age",ylab = "N290 Amp",mean.labels=TRUE, connect = FALSE, n.label=FALSE) 
+plotmeans(N290_cor~ROI,data=cutd,xlab = "ROI",ylab = "N290 Amp",mean.labels=TRUE, connect = FALSE, n.label=FALSE) 
+
+```
+
+
+
+```{r}
+plotmeans(P400_Amp~Age,data=erp_data,xlab = "Age",ylab = "P400 Amp",mean.labels=TRUE, connect = FALSE, n.label=FALSE) 
+
+plotmeans(P400_Amp~Condition,data=subset(erp_data, Age==6),xlab = "Condition",ylab = "P400 Amp",mean.labels=TRUE, connect = FALSE, n.label=FALSE) 
+```
+
+
+
+```{r P1 plots}
+
+#palette <- c("#0072b2", "#0072b2", "#0072b2", "#0072b2", "#0072b2")
+palette <- c("#E69F00", "#F0E442", "#D55E00", "#56B4E9", "#0072B2")
+
+ggplot(erp_data, aes(factor(ROI),P1_Amp))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=ROI, y=P1_Amp, color=ROI, fill=ROI)+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("P1 Amplitude (µV)")
+
+ggsave("p1_roi_violin.jpg")
+
+
+palette <- c("#0072b2", "#0072b2", "#0072b2", "#0072b2", "#0072b2")
+
+ggplot(erp_data, aes(factor(Age),P1_Amp))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Age), y=P1_Amp, color=factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age (months)")+ ylab("P1 Amplitude (µV)")
+
+ggsave("p1_age_violin.jpg")
+
+```
+
+
+```{r N290 plots}
+
+#palette <- c("#009e73", "#cc79a7", "#0072b2", "#009e73", "#cc79a7")
+palette <- c("#E69F00", "#F0E442", "#D55E00", "#56B4E9", "#0072B2")
+
+ggplot(cutd, aes(factor(Age),N290_cor))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=N290_cor, color=factor(ROI), fill=factor(ROI))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("N290 Amplitude (µV)")
+
+ggsave("n290_roi_age_violin.jpg")
+
+
+```
+
+
+
+```{r P400 plots}
+
+
+palette <- c("#0072b2", "#0072b2", "#0072b2", "#0072b2", "#0072b2")
+palette <- c("#E69F00", "#F0E442", "#D55E00", "#56B4E9", "#0072B2")
+
+ggplot(erp_data, aes(factor(ROI),P1_Amp))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=ROI, y=P400_Amp, color=ROI, fill=ROI)+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("P400 Amplitude (µV)")
+
+ggsave("p400_roi_violin.jpg")
+
+
+palette <- c("#0072b2", "#0072b2", "#0072b2", "#0072b2", "#0072b2")
+
+ggplot(erp_data, aes(factor(Age),P400_Amp))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Age), y=P1_Amp, color=factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age (months)")+ ylab("P400 Amplitude (µV)")
+
+ggsave("p400_age_violin.jpg")
+
+
+#palette <- c("#0072b2", "#0072b2", "#0072b2", "#0072b2", "#0072b2")
+
+palette <- c("#33CC00", "#339900", "#FFCC00", "#FF9900")
+
+ggplot(erp_data, aes(factor(Condition),P400_Amp))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=P400_Amp, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("P400 Amplitude (µV)")
+
+ggsave("p400_condition_violin.jpg")
+
+
+```
+
+
+

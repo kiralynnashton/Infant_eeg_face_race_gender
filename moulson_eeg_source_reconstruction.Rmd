@@ -1,0 +1,1826 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+
+library(nlme)
+library(ggplot2)
+library(gplots)
+```
+
+
+```{r load data}
+setwd("C:/Users/kasht/Documents/MATLAB/Create Source Models and Atlases/CDR_data/")
+
+n290_3 <- read.csv("cdr_by_roi_3_N290.txt", header=TRUE) 
+p400_3 <- read.csv("cdr_by_roi_3_P400.txt", header=TRUE) 
+p1_3 <- read.csv("cdr_by_roi_3_P1.txt", header=TRUE) 
+nc_3 <- read.csv("cdr_by_roi_3_Nc.txt", header=TRUE) 
+
+n290_6 <- read.csv("cdr_by_roi_6_N290.txt", header=TRUE) 
+p400_6 <- read.csv("cdr_by_roi_6_P400.txt", header=TRUE) 
+p1_6 <- read.csv("cdr_by_roi_6_P1.txt", header=TRUE) 
+nc_6 <- read.csv("cdr_by_roi_6_Nc.txt", header=TRUE) 
+
+n290_9 <- read.csv("cdr_by_roi_9_N290.txt", header=TRUE) 
+p400_9 <- read.csv("cdr_by_roi_9_P400.txt", header=TRUE) 
+p1_9 <- read.csv("cdr_by_roi_9_P1.txt", header=TRUE) 
+nc_9 <- read.csv("cdr_by_roi_9_Nc.txt", header=TRUE) 
+
+
+```
+
+```{r combine data}
+
+n290_all <- rbind(n290_3,n290_6,n290_9)
+p400_all <- rbind(p400_3,p400_6,p400_9)
+p1_all <- rbind(p1_3,p1_6,p1_9)
+nc_all <- rbind(nc_3,nc_6,nc_9)
+
+names(n290_all)
+```
+
+
+
+
+
+
+```{r select rois}
+
+n290_all <- subset(n290_all, ROI=="FFA_L" | ROI=="FFA_R" | ROI=="IOG_L" | ROI=="IOG_R" | ROI=="STS_L" | ROI=="STS_R")
+p400_all <- subset(p400_all, ROI=="FFA_L" | ROI=="FFA_R" | ROI=="IOG_L" | ROI=="IOG_R" | ROI=="STS_L" | ROI=="STS_R")
+p1_all <- subset(p1_all, ROI=="FFA_L" | ROI=="FFA_R" | ROI=="IOG_L" | ROI=="IOG_R" | ROI=="STS_L" | ROI=="STS_R")
+nc_all <- subset(nc_all, ROI=="MFG_L" | ROI=="MFG_R" | ROI=="PC_L" | ROI=="PC_R" | ROI=="CC_L" | ROI=="CC_R")
+  
+```
+
+
+```{r}
+unique(n290_all$ROI) 
+```
+
+
+```{r}
+
+# remove infants excluded for viewing non-normed stim images
+
+p1_all <- subset(p1_all, Participantnumber!=373 & Participantnumber!=6369 & Participantnumber!=6374 & Participantnumber!=312 & Participantnumber!=331 & Participantnumber!=6331 & Participantnumber!=6361 & Participantnumber!=96361 & Participantnumber!=982)
+n290_all <- subset(n290_all, Participantnumber!=373 & Participantnumber!=6369 & Participantnumber!=6374 & Participantnumber!=312 & Participantnumber!=331 & Participantnumber!=6331 & Participantnumber!=6361 & Participantnumber!=96361 & Participantnumber!=982)
+p400_all <- subset(p400_all, Participantnumber!=373 & Participantnumber!=6369 & Participantnumber!=6374 & Participantnumber!=312 & Participantnumber!=331 & Participantnumber!=6331 & Participantnumber!=6361 & Participantnumber!=96361 & Participantnumber!=982)
+nc_all <- subset(nc_all, Participantnumber!=373 & Participantnumber!=6369 & Participantnumber!=6374 & Participantnumber!=312 & Participantnumber!=331 & Participantnumber!=6331 & Participantnumber!=6361 & Participantnumber!=96361 & Participantnumber!=982)
+
+```
+
+
+
+
+```{r}
+
+
+nc_all$Gender <- ifelse((nc_all$Condition=="Femown"), "Female", 
+                             ifelse( (nc_all$Condition=="Femother" ),  "Female", "Male" ))
+
+nc_all$Race <- ifelse((nc_all$Condition=="Femown"), "Own", 
+                             ifelse( (nc_all$Condition=="Maleown" ),  "Own", "Other" ))
+
+
+#nc_all <- subset(nc_all, ROI=='L_MFG' | ROI=='R_MFG' | ROI=='L_PC'  | ROI=='R_PC'  | ROI=='L_CC'  | ROI=='R_CC')
+
+```
+
+
+```{r}
+
+
+n290_all$Gender <- ifelse((n290_all$Condition=="Femown"), "Female", 
+                             ifelse( (n290_all$Condition=="Femother" ),  "Female", "Male" ))
+
+n290_all$Race <- ifelse((n290_all$Condition=="Femown"), "Own", 
+                             ifelse( (n290_all$Condition=="Maleown" ),  "Own", "Other" ))
+
+
+
+
+
+p400_all$Gender <- ifelse((p400_all$Condition=="Femown"), "Female", 
+                             ifelse( (p400_all$Condition=="Femother" ),  "Female", "Male" ))
+
+p400_all$Race <- ifelse((p400_all$Condition=="Femown"), "Own", 
+                             ifelse( (p400_all$Condition=="Maleown" ),  "Own", "Other" ))
+
+
+
+p1_all$Gender <- ifelse((p1_all$Condition=="Femown"), "Female", 
+                             ifelse( (p1_all$Condition=="Femother" ),  "Female", "Male" ))
+
+p1_all$Race <- ifelse((p1_all$Condition=="Femown"), "Own", 
+                             ifelse( (p1_all$Condition=="Maleown" ),  "Own", "Other" ))
+
+
+
+
+```
+
+
+```{r}
+
+unique(nc_all$Race)
+
+```
+
+
+Sig factors:
+
+subset:
+
+Age: p=0.004
+Race: p=0.008
+
+```{r nc}
+
+nc.lme <- lme(CDR ~ as.factor(Gender) * as.factor(ROI) * Age +  
+        as.factor(ROI) * Age* as.factor(Race) + 
+        as.factor(Gender) * Age* as.factor(Race) + 
+        as.factor(Gender) * as.factor(ROI) *as.factor(Race), random= ~ 1 | Participantnumber, data = nc_all)
+
+anova(nc.lme)
+
+
+```
+
+
+Sig factors:
+
+Subset:
+ROI: p<0.001
+Age: p=0.023
+
+
+```{r n290}
+
+n290.lme <- lme(CDR ~ as.factor(Gender) * as.factor(ROI) * Age +  
+        as.factor(ROI) * Age* as.factor(Race) + 
+        as.factor(Gender) * Age* as.factor(Race) + 
+        as.factor(Gender) * as.factor(ROI) *as.factor(Race), random= ~ 1 | Participantnumber, data = n290_all)
+
+anova(n290.lme)
+
+
+```
+
+
+```{r}
+
+n290.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber,data = subset(n290_all, (Age==6 | Age==3)) )
+
+anova(n290.lme)
+
+n290.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber,data = subset(n290_all, (Age==9 | Age==3)) )
+
+anova(n290.lme)
+
+```
+
+
+
+```{r}
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber,data = subset(nc_all, (Age==3 | Age==9)) )
+
+anova(nc.lme)
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber,data = subset(nc_all, (Age==6 | Age==9)) )
+
+anova(nc.lme)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+unique(n290_all$ROI) 
+```
+
+```{r}
+
+
+
+d1 <- subset(n290_all, (Age=='6' | Age=='9' ))$CDR
+d2 <- subset(n290_all, (Age=='3'))$CDR
+
+newdf <- data.frame(x=c(d2,d1),
+                    source=c(rep("Occipital",times=length(d1)),rep("Temporal",times=length(d2))))
+
+t.test(x ~ source, data = newdf)
+
+```
+
+
+
+
+
+```{r}
+
+
+
+d1 <- subset(nc_all, (Age=='6' | Age=='9' ))$CDR
+d2 <- subset(nc_all, (Age=='3'))$CDR
+
+newdf <- data.frame(x=c(d2,d1),
+                    source=c(rep("Occipital",times=length(d1)),rep("Temporal",times=length(d2))))
+
+t.test(x ~ source, data = newdf)
+
+```
+
+```{r}
+unique(n290_all$ROI)
+```
+
+
+
+```{r}
+
+d1 <- subset(n290_all, (ROI=='FFA_L' | ROI=='FFA_R' ))$CDR
+d2 <- subset(n290_all, (ROI=='IOG_R' | ROI=='IOG_L' | ROI=='STS_R' | ROI=='STS_L'))$CDR
+
+newdf <- data.frame(x=c(d2,d1),
+                    source=c(rep("Occipital",times=length(d1)),rep("Temporal",times=length(d2))))
+
+t.test(x ~ source, data = newdf)
+
+```
+
+
+
+
+
+
+
+Sig factors:
+
+Subset:
+ROI: p<0.001
+
+
+```{r p400}
+
+p400.lme <- lme(CDR ~ as.factor(Gender) * as.factor(ROI) * Age +  
+        as.factor(ROI) * Age* as.factor(Race) + 
+        as.factor(Gender) * Age* as.factor(Race) + 
+        as.factor(Gender) * as.factor(ROI) *as.factor(Race), random= ~ 1 | Participantnumber, data = p400_all)
+
+anova(p400.lme)
+
+```
+
+
+
+
+```{r}
+plotmeans(CDR~factor(Age),data=nc_all,xlab = "Age",ylab = "CDR") 
+plotmeans(CDR~factor(Race),data=nc_all,xlab = "Condition",ylab = "CDR") 
+
+plotmeans(CDR~factor(Gender),data=p400_all,xlab = "Condition",ylab = "CDR") 
+plotmeans(CDR~factor(ROI),data=p400_all,xlab = "roi",ylab = "CDR") 
+
+plotmeans(CDR~factor(Age),data=n290_all,xlab = "Age",ylab = "CDR") 
+plotmeans(CDR~factor(ROI),data=n290_all,xlab = "roi",ylab = "CDR") 
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r nc plots}
+
+# age 
+
+palette <- c("#0072b2", "#0072b2", "#0072b2")
+
+ggplot(nc_all, aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color=factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age (months)")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+
+ggsave("nc_CDR_Age_violin.jpg")
+
+# race
+
+palette <- c("#619CFF", "#d55e00")
+
+ggplot(nc_all, aes(factor(Race),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Race), y=CDR, color=factor(Race), fill=factor(Race))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Race")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+
+ggsave("nc_CDR_Race_violin.jpg")
+
+```
+
+
+
+```{r n290 plots}
+
+# roi
+
+palette <- c("#0072b2", "#0072b2", "#56B4E9", "#56B4E9", "#D0EBFF","#D0EBFF")
+
+ggplot(n290_all, aes(factor(ROI),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(ROI), y=CDR, color=factor(ROI), fill=factor(ROI))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+
+ggsave("n290_CDR_ROI_violin.jpg")
+
+# age
+
+palette <- c("#0072b2", "#0072b2", "#0072b2")
+
+ggplot(n290_all, aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color=factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age (months)")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+
+ggsave("n290_CDR_Age_violin.jpg")
+
+
+
+
+
+
+
+```
+
+
+
+
+
+```{r p400 plots}
+
+# ROI
+
+palette <- c("#0072b2", "#0072b2", "#56B4E9", "#56B4E9", "#D0EBFF","#D0EBFF")
+
+ggplot(p400_all, aes(factor(ROI),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(ROI), y=CDR, color=factor(ROI), fill=factor(ROI))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+
+ggsave("p400_CDR_ROI_violin.jpg")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+nc_nomo <- subset(nc_all, Condition != 'Maleother')
+
+nc_nomo$Gender <- ifelse((nc_nomo$Condition=="Femown"), "Female", 
+                             ifelse( (nc_nomo$Condition=="Femother" ),  "Female", "Male" ))
+
+nc_nomo$Race <- ifelse((nc_nomo$Condition=="Femown"), "Own", 
+                             ifelse( (nc_nomo$Condition=="Femother" ),  "Other", "Own" ))
+
+nc_nomo <- subset(nc_nomo, ROI=='L_MFG' | ROI=='R_MFG' | ROI=='L_PC'  | ROI=='R_PC'  | ROI=='L_CC'  | ROI=='R_CC')
+
+```
+
+
+```{r}
+n290_nomo <- subset(n290_all, Condition != 'Maleother')
+
+n290_nomo$Gender <- ifelse((n290_nomo$Condition=="Femown"), "Female", 
+                             ifelse( (n290_nomo$Condition=="Femother" ),  "Female", "Male" ))
+
+n290_nomo$Race <- ifelse((n290_nomo$Condition=="Femown"), "Own", 
+                             ifelse( (n290_nomo$Condition=="Femother" ),  "Other", "Own" ))
+
+
+
+
+
+p400_nomo <- subset(p400_all, Condition != 'Maleother')
+
+p400_nomo$Gender <- ifelse((p400_nomo$Condition=="Femown"), "Female", 
+                             ifelse( (p400_nomo$Condition=="Femother" ),  "Female", "Male" ))
+
+p400_nomo$Race <- ifelse((p400_nomo$Condition=="Femown"), "Own", 
+                             ifelse( (p400_nomo$Condition=="Femother" ),  "Other", "Own" ))
+
+
+
+
+p1_nomo <- subset(p1_all, Condition != 'Maleother')
+
+p1_nomo$Gender <- ifelse((p1_nomo$Condition=="Femown"), "Female", 
+                             ifelse( (p1_nomo$Condition=="Femother" ),  "Female", "Male" ))
+
+p1_nomo$Race <- ifelse((p1_nomo$Condition=="Femown"), "Own", 
+                             ifelse( (p1_nomo$Condition=="Femother" ),  "Other", "Own" ))
+
+
+
+
+```
+
+
+
+Excluding male other race
+
+Sig
+
+Age: p<0.001
+ROI: p<0.001
+Race: p=0.023
+Gender x Age: p<0.001
+Race x Age: p=0.033
+
+```{r}
+
+n290.lme <- lme(CDR ~ as.factor(Gender) * Age * as.factor(ROI) +as.factor(Race) * Age * as.factor(ROI) , random= ~ 1 | Participantnumber, data = n290_nomo)
+
+anova(n290.lme)
+
+
+```
+
+```{r}
+
+n290.lme <- lme(CDR ~ as.factor(Condition) * Age * as.factor(ROI), random= ~ 1 | Participantnumber, data = n290_nomo)
+
+anova(n290.lme)
+
+
+```
+
+```{r}
+
+n2909cond.lme <- lme(CDR ~ as.factor(Condition) , random= ~ 1 | Participantnumber, data = subset(n290_nomo, Age==9))
+
+anova(n2909cond.lme)
+
+
+```
+
+
+```{r}
+plotmeans(CDR~factor(Condition),data=subset(n290_nomo, Age==9),xlab = "Condition",ylab = "CDR") 
+```
+
+
+
+```{r}
+
+n2903.lme <- lme(CDR ~ as.factor(Gender)  +as.factor(Race)  , random= ~ 1 | Participantnumber, data = subset(n290_nomo, Age==3))
+
+anova(n2903.lme)
+
+
+```
+
+
+```{r}
+
+n2906.lme <- lme(CDR ~ as.factor(Gender)  +as.factor(Race)  , random= ~ 1 | Participantnumber, data = subset(n290_nomo, Age==6))
+
+anova(n2906.lme)
+
+
+```
+
+Sig
+
+Gender: p<0.001
+Race: p<0.001
+
+
+```{r}
+
+n2909.lme <- lme(CDR ~ as.factor(Gender)  +as.factor(Race)  , random= ~ 1 | Participantnumber, data = subset(n290_nomo, Age==9))
+
+anova(n2909.lme)
+
+
+```
+
+
+
+```{r}
+
+plotmeans(CDR~factor(Gender),data=subset(nc_nomo, Age==9),xlab = "Gender",ylab = "CDR") 
+
+plotmeans(CDR~factor(Race),data=subset(nc_nomo, Age==9),xlab = "Race",ylab = "CDR")
+
+
+```
+
+
+```{r}
+plotmeans(CDR~factor(Condition),data=subset(n290_nomo, Race=="Own"),xlab = "Age",ylab = "CDR")
+
+plotmeans(CDR~factor(Age),data=subset(n290_nomo, Race=="Other"),xlab = "Age",ylab = "CDR")
+
+```
+
+
+
+
+Sig
+
+Age: p<0.001
+ROI: p<0.001
+Race x Age: p=0.030
+
+```{r}
+
+p400.lme <- lme(CDR ~ as.factor(Gender) * Age * as.factor(ROI) +as.factor(Race) * Age * as.factor(ROI) , random= ~ 1 | Participantnumber, data = p400_nomo)
+
+anova(p400.lme)
+
+
+```
+
+```{r}
+
+p400.lme <- lme(CDR ~ as.factor(Condition) * Age * as.factor(ROI) , random= ~ 1 | Participantnumber, data = p400_nomo)
+
+anova(p400.lme)
+
+
+```
+
+
+```{r}
+plotmeans(CDR~factor(Race),data=subset(p400_nomo, Age==3),xlab = "Race",ylab = "CDR")
+
+plotmeans(CDR~factor(Race),data=subset(p400_nomo, Age==6),xlab = "Race",ylab = "CDR")
+
+plotmeans(CDR~factor(Race),data=subset(p400_nomo, Age==9),xlab = "Race",ylab = "CDR")
+```
+
+
+```{r}
+
+p400own.lme <- lme(CDR ~as.factor(Age)  , random= ~ 1 | Participantnumber, data = subset(p400_nomo, Race=="Own"))
+
+anova(p400own.lme)
+
+
+```
+
+
+```{r}
+
+p400other.lme <- lme(CDR ~as.factor(Age)  , random= ~ 1 | Participantnumber, data = subset(p400_nomo, Race=="Other"))
+
+anova(p400other.lme)
+
+
+```
+
+
+
+```{r}
+plotmeans(CDR~factor(Age),data=subset(p400_nomo, Race=="Own"),xlab = "Age",ylab = "CDR")
+
+plotmeans(CDR~factor(Age),data=subset(p400_nomo, Race=="Other"),xlab = "Age",ylab = "CDR")
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+p4003.lme <- lme(CDR ~as.factor(Condition)  , random= ~ 1 | Participantnumber, data = subset(p400_nomo, Age==3))
+
+anova(p4003.lme)
+
+
+```
+
+
+
+```{r}
+
+p4006.lme <- lme(CDR ~as.factor(Condition)  , random= ~ 1 | Participantnumber, data = subset(p400_nomo, Age==6))
+
+anova(p4006.lme)
+
+
+```
+
+
+
+```{r}
+
+p4009.lme <- lme(CDR ~as.factor(Condition)  , random= ~ 1 | Participantnumber, data = subset(p400_nomo, Age==9))
+
+anova(p4009.lme)
+
+
+```
+
+```{r}
+plotmeans(CDR~factor(Condition),data=subset(p400_nomo, Age==9),xlab = "Condition",ylab = "CDR")
+
+
+```
+
+
+
+
+
+Sig
+
+Age: p<0.001
+ROI: p<0.001
+
+```{r}
+
+p1.lme <- lme(CDR ~ as.factor(Gender) * Age * as.factor(ROI) +as.factor(Race) * Age * as.factor(ROI) , random= ~ 1 | Participantnumber, data = p1_nomo)
+
+anova(p1.lme)
+
+
+```
+
+
+
+```{r}
+
+
+palette <-  c("#619CFF", "#d55e00", "#cc79a7") 
+
+ggplot(n290_nomo, aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age (months)")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+ggsave("n290_CDR_age_condition_violin.jpg") 
+
+
+
+
+palette <-  c("#619CFF", "#d55e00", "#cc79a7") 
+
+ggplot(p400_nomo, aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age (months)")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+ggsave("p400_CDR_age_condition_violin.jpg") 
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ROI: p<0.001
+Age x ROI: p=0.007
+Age x Race: p=0.035
+
+
+```{r}
+
+nc.lme <- lme(CDR ~ as.factor(Gender) * Age * as.factor(ROI) +as.factor(Race) * Age * as.factor(ROI) , random= ~ 1 | Participantnumber, data = nc_nomo)
+
+anova(nc.lme)
+
+
+```
+
+
+```{r}
+
+nc.lme <- lme(CDR ~ as.factor(Condition) * Age * as.factor(ROI) , random= ~ 1 | Participantnumber, data = nc_nomo)
+
+anova(nc.lme)
+
+
+```
+
+
+
+
+
+```{r}
+
+nc.lme <- lme(CDR ~ as.factor(Race) + as.factor(ROI) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, Age==3))
+
+anova(nc.lme)
+
+
+```
+
+
+```{r}
+
+nc.lme <- lme(CDR ~ as.factor(Race) + as.factor(ROI) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, Age==6))
+
+anova(nc.lme)
+
+
+```
+
+
+
+
+
+```{r}
+
+nc.lme <- lme(CDR ~ as.factor(Race) + as.factor(ROI) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, Age==9))
+
+anova(nc.lme)
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, ROI == 'L_MFG'))
+
+anova(nc.lme)
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, ROI == 'R_MFG'))
+
+anova(nc.lme)
+
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, ROI == 'L_PC'))
+
+anova(nc.lme)
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, ROI == 'R_PC'))
+
+anova(nc.lme)
+
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, ROI == 'L_CC'))
+
+anova(nc.lme)
+
+nc.lme <- lme(CDR ~ as.factor(Age) , random= ~ 1 | Participantnumber, data = subset(nc_nomo, ROI == 'R_CC'))
+
+anova(nc.lme)
+
+```
+
+
+```{r}
+
+plotmeans(CDR~factor(Age),data=subset(nc_nomo, ROI=="L_MFG"),xlab = "ROI",ylab = "CDR") 
+
+plotmeans(CDR~factor(Age),data=subset(nc_nomo, ROI=="R_MFG"),xlab = "ROI",ylab = "CDR")
+
+plotmeans(CDR~factor(Condition),data=subset(nc_nomo, Age==3),xlab = "Race",ylab = "CDR")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+unique(nc_nomo$ROI)
+```
+
+
+
+```{r}
+
+
+palette <-  c("#00BFC4", "#C77CFF", "#FF61CC") 
+
+ggplot(nc_nomo, aes(factor(ROI),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(ROI), y=CDR, color = factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+ggsave("nc_CDR_age_ROI_violin.jpg") 
+
+
+
+
+palette <-  c("#619CFF", "#d55e00", "#cc79a7") 
+
+ggplot(nc_nomo, aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter)")
+ggsave("nc_CDR_age_condition_violin.jpg") 
+
+
+
+```
+
+
+
+
+```{r}
+
+palette <-  c("#619CFF", "#d55e00", "#cc79a7") 
+
+ggplot(subset(nc_nomo, Age==3), aes(factor(ROI),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(ROI), y=CDR, color = factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_3months_ROI_condition_violin.jpg") 
+
+ggplot(subset(nc_nomo, Age==6), aes(factor(ROI),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(ROI), y=CDR, color = factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_6months_ROI_condition_violin.jpg") 
+
+ggplot(subset(nc_nomo, Age==9), aes(factor(ROI),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(ROI), y=CDR, color = factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_9months_ROI_condition_violin.jpg") 
+
+```
+
+
+
+```{r}
+
+
+palette <-  c("#619CFF", "#d55e00", "#cc79a7") 
+
+ggplot(subset(nc_nomo, ROI=='L_MFG'), aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = Condition, fill=Condition)+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_lmfg_condition_age_violin.jpg")
+
+
+ggplot(subset(nc_nomo, ROI=='R_MFG'), aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = Condition, fill=Condition)+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_rmfg_condition_age_violin.jpg")
+
+
+ggplot(subset(nc_nomo, ROI=='L_PC'), aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = Condition, fill=Condition)+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_lpc_condition_age_violin.jpg")
+
+ggplot(subset(nc_nomo, ROI=='R_PC'), aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = Condition, fill=Condition)+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_rpc_condition_age_violin.jpg")
+
+ggplot(subset(nc_nomo, ROI=='L_CC'), aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = Condition, fill=Condition)+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_lcc_condition_age_violin.jpg")
+
+ggplot(subset(nc_nomo, ROI=='R_CC'), aes(factor(Age),CDR))+geom_violin(trim=TRUE, position = position_dodge(0.9))+
+  geom_boxplot(width=0.1, color="white", alpha=0.2, position = position_dodge(0.9))+
+  aes(x=factor(Age), y=CDR, color = Condition, fill=Condition)+
+  stat_summary(fun=mean, geom="point", size=2, color="black", position = position_dodge(0.9))+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("Current Density Reconstruction (Amperes/square meter")
+
+ggsave("nc_CDR_rcc_condition_age_violin.jpg")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+Including male other race
+
+
+
+Sig factors:
+
+Condition: =0.014
+Age: <0.001
+ROI: <0.001
+Age x ROI: <0.001
+
+
+```{r nc high level model}
+
+nc.lme <- lme(CDR ~ as.factor(Condition) * Age * as.factor(ROI), random= ~ 1 | Participantnumber, data = nc_all)
+
+anova(nc.lme)
+
+
+```
+
+
+Sig factors:
+
+Age: <0.001
+ROI: <0.001
+Condition x Age: <0.001
+
+
+```{r n290 high level model}
+
+n290.lme <- lme(CDR ~ as.factor(Condition) * Age * as.factor(ROI), random= ~ 1 | Participantnumber, data = n290_all)
+
+anova(n290.lme)
+
+
+```
+
+Sig factors:
+
+Condition: p = 0.0023
+Age: p<0.001
+ROI: p<0.001
+Condition x age: p = 0.0181
+
+```{r p400 high level model}
+
+p400.lme <- lme(CDR ~ as.factor(Condition) * Age * as.factor(ROI), random= ~ 1 | Participantnumber, data = p400_all)
+
+anova(p400.lme)
+
+```
+
+
+
+```{r create variables for gender and race }
+
+n290_all$Gender <- ifelse(((n290_all$Condition == "Femown") | (n290_all$Condition == "Femother")), "Female", "Male")
+n290_all$Race <- ifelse(((n290_all$Condition == "Femown") | (n290_all$Condition == "Maleown")), "Own", "Other")
+
+p400_all$Gender <- ifelse(((p400_all$Condition == "Femown") | (n290_all$Condition == "Femother")), "Female", "Male")
+p400_all$Race <- ifelse(((p400_all$Condition == "Femown") | (n290_all$Condition == "Maleown")), "Own", "Other")
+
+nc_all$Gender <- ifelse(((nc_all$Condition == "Femown") | (nc_all$Condition == "Femother")), "Female", "Male")
+nc_all$Race <- ifelse(((nc_all$Condition == "Femown") | (nc_all$Condition == "Maleown")), "Own", "Other")
+
+```
+
+
+Sig factors:
+N290:
+  Age: p=0.003
+  Gender x age: p=0.0082
+  Gender x race: p=0.0089
+  Gender x race x age: p<0.001
+P400:
+  Gender: p=0.0688
+  Age: p<0.001
+  Gender x race: p=0.0023
+  Gender x race x age: p=0.0026
+  
+Nc:
+  ROI: <0.001
+  Gender: =0.0057
+  Age: <0.001
+  ROI x Age: <0.001
+  Gender x Age x Race: =0.042
+
+```{r models with conditions}
+
+n290.lme.sub <- lme(CDR ~ ROI * as.factor(Gender) * Age * as.factor(Race), random= ~ 1 | Participantnumber, data = n290_all)
+
+anova(n290.lme.sub)
+
+p400.lme.sub <- lme(CDR ~ ROI * as.factor(Gender) * Age * as.factor(Race), random= ~ 1 | Participantnumber, data = p400_all)
+
+anova(p400.lme.sub)
+
+nc.lme.sub <- lme(CDR ~ ROI * as.factor(Gender) * Age * as.factor(Race), random= ~ 1 | Participantnumber, data = nc_all)
+
+anova(nc.lme.sub)
+
+```
+
+
+
+
+```{r}
+
+palette <- c(palette <- c("#cc79a7", "#cc79a7", "#cc79a7", "#cc79a7", "#cc79a7", "#0072b2", "#0072b2", "#0072b2", "#0072b2", "#0072b2")
+ )
+
+ggplot(nc_all, aes(factor(ROI),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(ROI), y=CDR, color=factor(ROI), fill=factor(ROI))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("Nc CDR")
+
+
+```
+
+
+```{r}
+
+plotmeans(CDR~factor(ROI),data=nc_all,xlab = "ROI",ylab = "CDR") 
+
+```
+
+
+
+
+
+```{r}
+palette <- c("#d55e00", "#cc79a7", "#0072b2", "#009e73", "#d55e00", "#cc79a7")
+
+ggplot(n290_all, aes(factor(Age),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Age), y=CDR, color=factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("N290 CDR")
+
+ggplot(n290_all, aes(factor(ROI),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(ROI), y=CDR, color=factor(ROI), fill=factor(ROI))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("N290 CDR")
+
+#ggsave("p400_3mo_race_violin.jpg")
+```
+
+
+```{r}
+palette <- c("#d55e00", "#cc79a7", "#0072b2", "#009e73", "#d55e00", "#cc79a7")
+
+ggplot(p400_all, aes(factor(Age),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Age), y=CDR, color=factor(Age), fill=factor(Age))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Age")+ ylab("P400 CDR")
+
+ggplot(p400_all, aes(factor(ROI),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(ROI), y=CDR, color=factor(ROI), fill=factor(ROI))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("P400 CDR")
+
+#ggsave("p400_3mo_race_violin.jpg")
+```
+
+
+Sig factors:
+Nc
+  3 months: none
+  6 months: none
+  9 months:
+    Gender x race: p=0.0134
+
+
+```{r nc age breakdown}
+
+nc.lme.3 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(nc_all, Age==3))
+
+anova(nc.lme.3)
+
+nc.lme.6 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(nc_all, Age==6))
+
+anova(nc.lme.6)
+
+nc.lme.9 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(nc_all, Age==9))
+
+anova(nc.lme.9)
+
+```
+
+
+```{r nc 9 month model breakdown}
+
+nc.lme.9 <- lme(CDR ~ as.factor(Race), random= ~ 1 | Participantnumber, data = subset(nc_all, Age==9 & Gender=='Male'))
+anova(nc.lme.9)
+
+datam <- subset(nc_all, Age==9 & Gender=='Male')
+
+plot(factor(datam$Race),datam$CDR)
+
+mean(subset(datam, Race=='Own')$CDR)
+mean(subset(datam, Race=='Other')$CDR)
+
+dataf <- subset(nc_all, Age==9 & Gender=='Female')
+
+plot(factor(dataf$Race),dataf$CDR)
+
+mean(subset(dataf, Race=='Own')$CDR)
+mean(subset(dataf, Race=='Other')$CDR)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sig factors:
+N290
+  3 months: none
+  6 months: none
+  9 months:
+    Gender: p=0.0318
+    Gender x race: p<0.001
+
+
+```{r n290 age breakdown}
+
+n290.lme.3 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(n290_all, Age==3))
+
+anova(n290.lme.3)
+
+n290.lme.6 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(n290_all, Age==6))
+
+anova(n290.lme.6)
+
+n290.lme.9 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(n290_all, Age==9))
+
+anova(n290.lme.9)
+
+```
+
+```{r}
+
+palette <- c("#d55e00", "#cc79a7", "#0072b2", "#009e73", "#d55e00", "#cc79a7")
+
+ggplot(subset(n290_all, Age==3), aes(factor(Condition),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=CDR, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("N290 CDR")
+
+ggplot(subset(n290_all, Age==6), aes(factor(Condition),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=CDR, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("N290 CDR")
+
+ggplot(subset(n290_all, Age==9), aes(factor(Condition),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=CDR, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("N290 CDR")
+
+```
+
+
+N290
+  Male other significantly greater CDR 
+  Female own significantly greater CDR
+
+```{r n290 9 month model breakdown}
+
+n290.lme.9 <- lme(CDR ~ as.factor(Race), random= ~ 1 | Participantnumber, data = subset(n290_all, Age==9 & Gender=='Male'))
+anova(n290.lme.9)
+
+datam <- subset(n290_all, Age==9 & Gender=='Male')
+
+plot(factor(datam$Race),datam$CDR)
+
+mean(subset(datam, Race=='Own')$CDR)
+mean(subset(datam, Race=='Other')$CDR)
+
+dataf <- subset(n290_all, Age==9 & Gender=='Female')
+
+plot(factor(dataf$Race),dataf$CDR)
+
+mean(subset(dataf, Race=='Own')$CDR)
+mean(subset(dataf, Race=='Other')$CDR)
+```
+
+Sig factors:
+  3 months: none
+  6 months: 
+    Gender: p=0.0336
+  9 months:
+    Gender x race: p<0.001
+
+```{r p400 age breakdown}
+
+p400.lme.3 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(p400_all, Age==3))
+
+anova(p400.lme.3)
+
+p400.lme.6 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(p400_all, Age==6))
+
+anova(p400.lme.6)
+
+p400.lme.9 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(p400_all, Age==9))
+
+anova(p400.lme.9)
+
+```
+
+```{r}
+
+plotmeans(CDR~ Gender, data=subset(p400_all, Age==6), mean.labels=TRUE, connect = FALSE, n.label=FALSE,
+          xlab="Gender", ylab="P400")
+
+```
+
+
+P400
+  Sig greater CDR for Male other
+  Sig greater CDR for Female own
+
+```{r p400 9 month model breakdown}
+
+p400.lme.9 <- lme(CDR ~ as.factor(Race), random= ~ 1 | Participantnumber, data = subset(n290_all, Age==9 & Gender=='Female'))
+anova(p400.lme.9)
+
+datam <- subset(p400_all, Age==9 & Gender=='Male')
+
+plot(factor(datam$Race),datam$CDR)
+
+mean(subset(datam, Race=='Own')$CDR)
+mean(subset(datam, Race=='Other')$CDR)
+
+dataf <- subset(p400_all, Age==9 & Gender=='Female')
+
+plot(factor(dataf$Race),dataf$CDR)
+
+mean(subset(dataf, Race=='Own')$CDR)
+mean(subset(dataf, Race=='Other')$CDR)
+```
+
+
+```{r}
+
+palette <- c("#d55e00", "#cc79a7", "#0072b2", "#009e73", "#d55e00", "#cc79a7")
+
+ggplot(subset(p400_all, Age==3), aes(factor(Condition),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=CDR, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("P400 CDR")
+
+ggplot(subset(p400_all, Age==6), aes(factor(Condition),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=CDR, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("P400 CDR")
+
+ggplot(subset(p400_all, Age==9), aes(factor(Condition),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=factor(Condition), y=CDR, color=factor(Condition), fill=factor(Condition))+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Condition")+ ylab("P400 CDR")
+
+```
+
+
+```{r}
+n290_all$condlab <-ifelse((n290_all$Condition=="Femown" ), "Female Own", 
+                             ifelse( (n290_all$Condition=="Femother"),  "Female Other",  
+                                    ifelse((n290_all$Condition=="Maleown"), "Male Own", "Male Other")))
+
+p400_all$condlab <-ifelse((p400_all$Condition=="Femown" ), "Female Own", 
+                             ifelse( (p400_all$Condition=="Femother"),  "Female Other",  
+                                    ifelse((p400_all$Condition=="Maleown"), "Male Own", "Male Other")))
+
+
+
+```
+
+
+```{r p400 meanplot box}
+
+png("n290condmeanplotcdr.jpg")
+plotmeans(CDR~ condlab, data=subset(n290_all, Age==9), mean.labels=FALSE, connect = FALSE, n.label=FALSE,  xlab="Condition", ylab="N290 CDR", main="N290 9 month condition response")
+
+
+
+
+png("n2906mocondmeanplot.jpg")
+plotmeans(CDR~ Gender, data=subset(p400_all, Age==6), mean.labels=FALSE, connect = FALSE, n.label=FALSE, #cex=1/2,
+          xlab="Gender Condition", ylab="P400 CDR")
+
+png("n290roimeanplotcdr.jpg")
+plotmeans(CDR~ ROI, data=n290_all, mean.labels=FALSE, connect = FALSE, n.label=FALSE, #cex=1/2,
+          xlab="ROI", ylab="N290 CDR")
+
+
+```
+
+
+```{r meanplot box}
+
+png("n290condmeanplotroi6.jpg")
+par(las=1,                        # use perpendicular axis labels
+      mar=c(8.1,4.1,2.1,0.0)      # create enough space for long x labels
+                
+      )
+plotmeans(CDR~ condlab, data=subset(n290_all, Age==9 & ROI=="R_IOG"), mean.labels=FALSE, connect = FALSE, n.label=FALSE, xlab="Condition", ylab="N290 CDR",main="N290 Inferior Occipital Gyrus Right")
+
+
+# 
+# png("n2906mocondmeanplot.jpg")
+# plotmeans(CDR~ Gender, data=subset(p400_all, Age==6), mean.labels=FALSE, connect = FALSE, n.label=FALSE, #cex=1/2,
+#           xlab="Gender Condition", ylab="P400 CDR")
+# 
+# png("n290roimeanplotcdr.jpg")
+# plotmeans(CDR~ ROI, data=n290_all, mean.labels=FALSE, connect = FALSE, n.label=FALSE, #cex=1/2,
+#           xlab="ROI", ylab="N290 CDR")
+
+
+```
+
+
+Sig ROIs
+R FFA
+L STS
+R STS
+```{r}
+p400.lme.9 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(p400_all, ROI=='R_STS' &  Age==9))
+anova(p400.lme.9)
+
+```
+
+
+Sig ROIs
+L_FFA
+R FFA
+R IOG
+R STS
+```{r}
+n290.lme.9 <- lme(CDR ~ as.factor(Gender) * as.factor(Race), random= ~ 1 | Participantnumber, data = subset(n290_all, ROI=='R_STS' &  Age==9))
+anova(n290.lme.9)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r ROIs}
+
+
+plot(factor(n290_all$ROI),n290_all$CDR)
+
+mean(subset(n290_all, ROI=='L_FFA')$CDR)
+mean(subset(n290_all, ROI=='R_FFA')$CDR)
+mean(subset(n290_all, ROI=='L_IOG')$CDR)
+mean(subset(n290_all, ROI=='R_IOG')$CDR)
+mean(subset(n290_all, ROI=='L_STS')$CDR)
+mean(subset(n290_all, ROI=='R_STS')$CDR)
+
+plotmeans(CDR~ ROI, data=n290_all, mean.labels=TRUE, connect = FALSE,
+          xlab="ROI", ylab="N290 CDR")
+
+palette <- c("#d55e00", "#cc79a7", "#0072b2", "#009e73", "#d55e00", "#cc79a7")
+
+ggplot(n290_all, aes(factor(ROI),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=ROI, y=CDR, color=ROI, fill=ROI)+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("ROI")+ ylab("P400 CDR")
+
+```
+
+
+
+
+```{r}
+
+#par(mfrow=c(1,2))
+
+
+palette <- c("#d55e00", "#cc79a7", "#0072b2", "#009e73", "#d55e00", "#cc79a7")
+
+f9<-ggplot(dataf, aes(factor(Race),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=Race, y=CDR, color=Race, fill=Race)+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+ggtitle("Female")
+  
+  xlab("Race")+ ylab("P400 CDR")+ggtitle("Female")
+m9<-ggplot(datam, aes(factor(Race),CDR))+geom_violin(trim=TRUE)+
+  geom_boxplot(width=0.1, color="white", alpha=0.2)+
+  aes(x=Race, y=CDR, color=Race, fill=Race)+
+  stat_summary(fun=mean, geom="point", size=2, color="black")+
+  scale_color_manual(values=palette)+
+  scale_fill_manual(values=palette)+
+  xlab("Race")+ ylab("P400 CDR")+ggtitle("Male")
+
+
+
+figure <- ggarrange(f9, m9,
+                    labels = c("A", "B"),
+                    ncol = 2, nrow = 1)
+figure
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
